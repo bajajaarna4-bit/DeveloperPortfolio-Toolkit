@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 
 export async function login(formData: FormData) {
-  const email = formData.get('email') as string
+  const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
   const redirectTo = (formData.get('redirectTo') as string) || '/dashboard'
 
@@ -17,18 +17,26 @@ export async function login(formData: FormData) {
     )
   }
 
-  const supabase = await createClient()
+  let authError: string | null = null
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
+  try {
+    const supabase = await createClient()
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    if (error) {
+      authError = error.message
+    }
+  } catch (err: any) {
+    authError = err?.message || 'Authentication service error.'
+  }
 
-  if (error) {
+  if (authError) {
     redirect(
-      `/login?error=${encodeURIComponent(
-        error.message
-      )}&redirectTo=${encodeURIComponent(redirectTo)}`
+      `/login?error=${encodeURIComponent(authError)}&redirectTo=${encodeURIComponent(
+        redirectTo
+      )}`
     )
   }
 
@@ -37,9 +45,9 @@ export async function login(formData: FormData) {
 }
 
 export async function signup(formData: FormData) {
-  const email = formData.get('email') as string
+  const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
-  const fullName = formData.get('fullName') as string
+  const fullName = (formData.get('fullName') as string)?.trim()
   const redirectTo = (formData.get('redirectTo') as string) || '/dashboard'
 
   if (!email || !password) {
@@ -58,33 +66,43 @@ export async function signup(formData: FormData) {
     )
   }
 
-  const supabase = await createClient()
+  let signupError: string | null = null
+  let hasSession = false
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: {
-        full_name: fullName || '',
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: fullName || '',
+        },
       },
-    },
-  })
+    })
 
-  if (error) {
+    if (error) {
+      signupError = error.message
+    } else if (data?.session) {
+      hasSession = true
+    }
+  } catch (err: any) {
+    signupError = err?.message || 'Failed to create account.'
+  }
+
+  if (signupError) {
     redirect(
       `/login?error=${encodeURIComponent(
-        error.message
+        signupError
       )}&mode=signup&redirectTo=${encodeURIComponent(redirectTo)}`
     )
   }
 
-  // If email confirmation is disabled or automatic login occurs
-  if (data?.session) {
+  if (hasSession) {
     revalidatePath('/', 'layout')
     redirect(redirectTo)
   }
 
-  // Email confirmation required
   redirect(
     `/login?message=${encodeURIComponent(
       'Account created! If confirmation is required, please check your email inbox.'
@@ -93,8 +111,12 @@ export async function signup(formData: FormData) {
 }
 
 export async function signOut() {
-  const supabase = await createClient()
-  await supabase.auth.signOut()
+  try {
+    const supabase = await createClient()
+    await supabase.auth.signOut()
+  } catch (e) {
+    console.error('SignOut error:', e)
+  }
   revalidatePath('/', 'layout')
   redirect('/login')
 }
