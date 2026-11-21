@@ -2,15 +2,19 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { signOut } from '@/app/login/actions'
-import { User, Shield, Key, Mail, Calendar, ArrowLeft, LogOut, CheckCircle2 } from 'lucide-react'
+import { Shield, ArrowLeft, LogOut, CheckCircle2 } from 'lucide-react'
 
 export default async function AccountPage() {
-  const supabase = await createClient()
-
-  // Verify authentication server-side
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase.auth.getUser()
+    if (!error && data?.user) {
+      user = data.user
+    }
+  } catch {
+    user = null
+  }
 
   if (!user) {
     redirect('/login?redirectTo=/account')

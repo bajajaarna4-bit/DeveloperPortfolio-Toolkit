@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { login, signup } from './actions'
-import { Sparkles, Music, Lock, Mail, User, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { Music, Lock, Mail, User, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface LoginPageProps {
-  searchParams: {
+  searchParams?: {
     error?: string
     message?: string
     mode?: string
@@ -12,10 +12,11 @@ interface LoginPageProps {
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
-  const isSignup = searchParams.mode === 'signup'
-  const error = searchParams.error
-  const message = searchParams.message
-  const redirectTo = searchParams.redirectTo || '/dashboard'
+  const params = searchParams || {}
+  const isSignup = params.mode === 'signup'
+  const error = params.error
+  const message = params.message
+  const redirectTo = params.redirectTo || '/dashboard'
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center px-4 relative overflow-hidden">

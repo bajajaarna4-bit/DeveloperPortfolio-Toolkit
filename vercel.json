@@ -4,10 +4,6 @@
     "app": {
       "root": ".",
       "framework": "nextjs"
-    },
-    "api": {
-      "root": "API",
-      "runtime": "python"
     }
   },
   "rewrites": [
