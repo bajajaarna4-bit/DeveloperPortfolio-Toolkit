@@ -62,3 +62,5 @@ desktop.ini
 *.tmp
 *.bak
 ShellScripts/backups/*.tar.gz
+
+.vercel
