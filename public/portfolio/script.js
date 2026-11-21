@@ -610,7 +610,10 @@ function initTelemetryChart() {
 async function loadData() {
   // Load System Telemetry
   try {
-    const sysResp = await fetch('../../API/system_stats.json');
+    let sysResp = await fetch('/api/system').catch(() => null);
+    if (!sysResp || !sysResp.ok) {
+      sysResp = await fetch('../../API/system_stats.json');
+    }
     if (!sysResp.ok) throw new Error('API system stats not found');
     const sysData = await sysResp.json();
     hydrateSystemStats(sysData);
@@ -627,7 +630,10 @@ async function loadData() {
 
   // Load GitHub API Telemetry
   try {
-    const gitResp = await fetch('../../API/stats_summary.json');
+    let gitResp = await fetch('/api/stats').catch(() => null);
+    if (!gitResp || !gitResp.ok) {
+      gitResp = await fetch('../../API/stats_summary.json');
+    }
     if (!gitResp.ok) throw new Error('API GitHub stats not found');
     const gitData = await gitResp.json();
     hydrateGitHubStats(gitData);
