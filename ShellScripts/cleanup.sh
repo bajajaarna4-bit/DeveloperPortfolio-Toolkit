@@ -88,7 +88,7 @@ cleanup_files() {
                 echo -e "  ${GREEN}[REMOVED]${RESET} $file"
             fi
         fi
-    done < <(find "$TARGET_ROOT" -type f -name "$pattern" ! -path "*/.git/*" 2>/dev/null || true)
+    done < <(find "$TARGET_ROOT" -type f -name "$pattern" ! -path "*/.git/*" ! -path "*/.venv/*" ! -path "*/node_modules/*" 2>/dev/null || true)
 }
 
 # Clean Python caches (__pycache__, *.pyc, *.pyo)
@@ -107,7 +107,7 @@ cleanup_directories() {
                 echo -e "  ${GREEN}[REMOVED DIR]${RESET} $dir"
             fi
         fi
-    done < <(find "$TARGET_ROOT" -type d -name "$dir_name" ! -path "*/.git/*" 2>/dev/null || true)
+    done < <(find "$TARGET_ROOT" -type d -name "$dir_name" ! -path "*/.git/*" ! -path "*/.venv/*" ! -path "*/node_modules/*" 2>/dev/null || true)
 }
 
 # Clean old log files (> MAX_LOG_DAYS days old)
