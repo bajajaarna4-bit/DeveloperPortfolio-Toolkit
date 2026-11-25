@@ -62,6 +62,8 @@ function initStarfield() {
     });
   }
 
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
   function render() {
     ctx.clearRect(0, 0, width, height);
 
@@ -108,7 +110,9 @@ function initStarfield() {
       ctx.shadowBlur = 0;
     });
 
-    requestAnimationFrame(render);
+    if (!reducedMotion) {
+      requestAnimationFrame(render);
+    }
   }
 
   render();
@@ -139,6 +143,9 @@ function initTiltEffect() {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
   tiltCards.forEach((card) => {
+    if (card.dataset.tiltBound === '1') return;
+    card.dataset.tiltBound = '1';
+
     card.addEventListener('mousemove', (e) => {
       const rect = card.getBoundingClientRect();
       const x = e.clientX - rect.left;
@@ -445,12 +452,14 @@ function initTerminalSimulator() {
   if (copyBtn) {
     copyBtn.addEventListener('click', () => {
       const script = TERMINAL_SCRIPTS[activeScriptKey];
-      if (script) {
-        navigator.clipboard.writeText(script.command);
+      if (script && copyBtn.dataset.copying !== '1') {
+        navigator.clipboard?.writeText(script.command).catch(() => {});
         const originalText = copyBtn.textContent;
+        copyBtn.dataset.copying = '1';
         copyBtn.textContent = '✓ Copied!';
         setTimeout(() => {
           copyBtn.textContent = originalText;
+          delete copyBtn.dataset.copying;
         }, 1500);
       }
     });
@@ -582,7 +591,9 @@ function initTelemetryChart() {
     drawSeries(telemetryHistory.cpu, '#00f0ff', '#00f0ff');
     drawSeries(telemetryHistory.ram, '#a855f7', '#a855f7');
 
-    requestAnimationFrame(draw);
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      requestAnimationFrame(draw);
+    }
   }
 
   draw();
@@ -601,6 +612,10 @@ function initTelemetryChart() {
 
     if (telemetryHistory.cpu.length > 20) telemetryHistory.cpu.shift();
     if (telemetryHistory.ram.length > 20) telemetryHistory.ram.shift();
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      draw();
+    }
   }, 2000);
 }
 
@@ -667,21 +682,29 @@ function hydrateSystemStats(data) {
   updateGaugeCircle('disk-gauge-circle', diskPct, 'disk-status-badge');
 
   // Specs text
-  setText('cpu-cores', `${data.cpu?.logical_cores || 16} Cores`);
-  setText('cpu-freq', `${(data.cpu?.current_frequency_mhz / 1000).toFixed(2)} GHz`);
-  setText('ram-used', `${data.memory?.used_gb || 5.2} GB`);
-  setText('ram-total', `${data.memory?.total_gb || 15.9} GB`);
-  setText('disk-free', `${data.disk?.free_gb || 303} GB`);
-  setText('disk-total', `${data.disk?.total_gb || 468} GB`);
+  setText('cpu-cores', `${data.cpu?.logical_cores ?? 16} Cores`);
+  setText('cpu-freq', `${((data.cpu?.current_frequency_mhz ?? 3200) / 1000).toFixed(2)} GHz`);
+  setText('ram-used', `${data.memory?.used_gb ?? 5.2} GB`);
+  setText('ram-total', `${data.memory?.total_gb ?? 15.9} GB`);
+  setText('disk-free', `${data.disk?.free_gb ?? 303} GB`);
+  setText('disk-total', `${data.disk?.total_gb ?? 468} GB`);
 
   // Hardware Matrix
   setText('spec-hostname', data.system?.hostname || 'dev-workstation');
   setText('spec-os', data.system?.os_name || 'Ubuntu 24.04 LTS');
   setText('spec-kernel', data.system?.os_release || '6.8.0-40-generic');
   setText('spec-arch', data.system?.architecture || 'x86_64');
+  if (data.network?.bytes_sent_mb !== undefined && data.network?.bytes_recv_mb !== undefined) {
+    setText('spec-net', `▲ ${formatMb(data.network.bytes_sent_mb)} / ▼ ${formatMb(data.network.bytes_recv_mb)}`);
+  }
   setText('spec-uptime', data.uptime?.formatted || '14d 3h 42m');
   setText('hero-uptime', data.uptime?.formatted || '14d 3h 42m');
   setText('hero-platform', `${data.system?.os_name || 'Linux'} ${data.system?.architecture || 'x86_64'}`);
+}
+
+function formatMb(mb) {
+  const value = Number(mb) || 0;
+  return value >= 1024 ? `${(value / 1024).toFixed(1)} GB` : `${value.toFixed(1)} MB`;
 }
 
 function updateGaugeCircle(circleId, pct, badgeId) {
@@ -709,6 +732,8 @@ function updateGaugeCircle(circleId, pct, badgeId) {
       badge.className = 'badge-status warning';
     }
   } else {
+    circle.style.stroke = '';
+    circle.style.filter = '';
     if (badge) {
       badge.textContent = 'Normal';
       badge.className = 'badge-status';
@@ -745,6 +770,20 @@ function hydrateGitHubStats(data) {
   renderRepositories(data.recent_repositories || []);
 }
 
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function safeUrl(url) {
+  const raw = String(url ?? '');
+  return /^https?:\/\//i.test(raw) ? raw : '#';
+}
+
 function renderLanguages(languages) {
   const container = document.getElementById('language-bars-container');
   if (!container || languages.length === 0) return;
@@ -761,14 +800,15 @@ function renderLanguages(languages) {
   container.innerHTML = languages
     .map((lang) => {
       const cls = classMap[lang.name] || 'shell';
+      const pct = Math.min(100, Math.max(0, Number(lang.percentage) || 0));
       return `
       <div class="lang-bar-item">
         <div class="lang-info">
-          <span class="lang-name">${lang.name}</span>
-          <span class="lang-pct">${lang.percentage}%</span>
+          <span class="lang-name">${escapeHtml(lang.name)}</span>
+          <span class="lang-pct">${pct}%</span>
         </div>
         <div class="progress-track">
-          <div class="progress-fill ${cls}" style="width: ${lang.percentage}%"></div>
+          <div class="progress-fill ${cls}" style="width: ${pct}%"></div>
         </div>
       </div>
     `;
@@ -785,18 +825,18 @@ function renderRepositories(repos) {
       (repo) => `
     <div class="glass-card repo-card tilt-target">
       <div class="repo-card-header">
-        <a href="${repo.html_url}" target="_blank" rel="noopener noreferrer" class="repo-name">
-          ${repo.name} ↗
+        <a href="${escapeHtml(safeUrl(repo.html_url))}" target="_blank" rel="noopener noreferrer" class="repo-name">
+          ${escapeHtml(repo.name)} ↗
         </a>
-        <span class="repo-stars-badge">★ ${repo.stars}</span>
+        <span class="repo-stars-badge">★ ${Number(repo.stars) || 0}</span>
       </div>
-      <p class="repo-desc">${repo.description}</p>
+      <p class="repo-desc">${escapeHtml(repo.description)}</p>
       <div class="repo-footer">
         <span class="repo-lang-pill">
           <span class="lang-color-circle"></span>
-          <span>${repo.language}</span>
+          <span>${escapeHtml(repo.language)}</span>
         </span>
-        <span>⑂ ${repo.forks} forks</span>
+        <span>⑂ ${Number(repo.forks) || 0} forks</span>
       </div>
     </div>
   `
@@ -845,13 +885,15 @@ function setupInteractions() {
   if (emailRow) {
     emailRow.addEventListener('click', () => {
       const email = document.getElementById('email-text')?.textContent || 'bajajaarna4@gmail.com';
-      navigator.clipboard.writeText(email);
+      navigator.clipboard?.writeText(email).catch(() => {});
       const valEl = emailRow.querySelector('.link-val');
-      if (valEl) {
+      if (valEl && valEl.dataset.copying !== '1') {
         const orig = valEl.textContent;
+        valEl.dataset.copying = '1';
         valEl.textContent = '✓ Copied to clipboard!';
         setTimeout(() => {
           valEl.textContent = orig;
+          delete valEl.dataset.copying;
         }, 1800);
       }
     });

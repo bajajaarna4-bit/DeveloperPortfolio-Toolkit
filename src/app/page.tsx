@@ -30,6 +30,12 @@ export default async function HomePage() {
           </Link>
 
           <nav className="flex items-center gap-4">
+            <a
+              href="/portfolio"
+              className="hidden sm:inline-flex px-3.5 py-2 rounded-xl text-text-muted hover:text-accent-primary text-sm font-medium transition-colors"
+            >
+              Portfolio Dashboard
+            </a>
             {user ? (
               <div className="flex items-center gap-3">
                 <Link
@@ -115,7 +121,7 @@ export default async function HomePage() {
             </div>
             <h3 className="text-lg font-semibold mb-2">Supabase Auth & SSR</h3>
             <p className="text-text-muted text-sm leading-relaxed">
-              Strict cookie-based JWT sessions with Next.js Middleware route guards protecting <code>/dashboard</code>, <code>/account</code>, and studio endpoints.
+              Strict cookie-based JWT sessions with server-side route guards protecting <code>/dashboard</code>, <code>/account</code>, and studio endpoints.
             </p>
           </div>
 

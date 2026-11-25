@@ -1,4 +1,7 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { safeRedirectPath } from '@/lib/supabase/redirect'
 import { login, signup } from './actions'
 import { Music, Lock, Mail, User, ShieldCheck, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react'
 
@@ -11,12 +14,24 @@ interface LoginPageProps {
   }
 }
 
-export default function LoginPage({ searchParams }: LoginPageProps) {
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = searchParams || {}
   const isSignup = params.mode === 'signup'
   const error = params.error
   const message = params.message
-  const redirectTo = params.redirectTo || '/dashboard'
+  const redirectTo = safeRedirectPath(params.redirectTo, '/dashboard')
+
+  try {
+    const supabase = await createClient()
+    const { data, error: authError } = await supabase.auth.getUser()
+    if (!authError && data?.user) {
+      redirect(redirectTo)
+    }
+  } catch (err: any) {
+    if (err?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw err
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center items-center px-4 relative overflow-hidden">

@@ -52,17 +52,27 @@ echo -e "Source Path      : ${BOLD}${SOURCE_DIR}${RESET}"
 echo -e "Destination Path : ${BOLD}${TARGET_DIR}${RESET}"
 echo -e "Creating Archive : ${YELLOW}${ARCHIVE_NAME}${RESET}..."
 
-# Create compressed tar archive excluding temp files, venv, and previous backups
+# Create compressed tar archive excluding temp files, venv, node_modules, build artifacts, and previous backups
 tar -czf "$ARCHIVE_PATH" \
     --exclude='.git' \
     --exclude='.venv' \
     --exclude='venv' \
+    --exclude='node_modules' \
+    --exclude='.next' \
+    --exclude='.vercel' \
     --exclude='__pycache__' \
     --exclude='ShellScripts/backups' \
     --exclude='*.tar.gz' \
     -C "$(dirname "$SOURCE_DIR")" "$(basename "$SOURCE_DIR")" 2>/dev/null || {
     # Fallback without -C if single folder
-    tar -czf "$ARCHIVE_PATH" --exclude='.git' -C "$SOURCE_DIR" .
+    tar -czf "$ARCHIVE_PATH" \
+        --exclude='.git' \
+        --exclude='.venv' \
+        --exclude='node_modules' \
+        --exclude='.next' \
+        --exclude='.vercel' \
+        --exclude='ShellScripts/backups' \
+        -C "$SOURCE_DIR" .
 }
 
 # Verify integrity
@@ -81,7 +91,7 @@ echo -e "\n${CYAN}Enforcing Retention Policy (Max ${MAX_BACKUPS} archives)...${R
 
 # Find backups sorted by modification time (newest first)
 cd "$TARGET_DIR"
-BACKUP_COUNT=$(ls -1t backup_*.tar.gz 2>/dev/null | wc -l || echo 0)
+BACKUP_COUNT=$({ ls -1t backup_*.tar.gz 2>/dev/null || true; } | wc -l)
 
 if (( BACKUP_COUNT > MAX_BACKUPS )); then
     echo -e "${YELLOW}Found ${BACKUP_COUNT} backups. Pruning oldest archives...${RESET}"

@@ -113,7 +113,7 @@ export default async function AccountPage() {
               </div>
               <div className="flex items-center justify-between py-2">
                 <span className="text-text-subtle">Route Interceptor</span>
-                <span className="text-text font-mono">Next.js Edge Middleware</span>
+                <span className="text-text font-mono">Next.js Server Auth Guard</span>
               </div>
             </div>
           </div>

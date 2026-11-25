@@ -89,7 +89,7 @@ export default async function DashboardPage() {
             </h1>
             <p className="text-text-muted text-sm max-w-xl">
               This dashboard route is fully protected by Supabase Auth with server-side cookie verification.
-              Unauthenticated requests are intercepted and redirected by Next.js middleware.
+              Unauthenticated requests are verified and redirected server-side on every request.
             </p>
           </div>
         </div>

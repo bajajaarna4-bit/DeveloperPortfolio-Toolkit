@@ -3,11 +3,12 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { safeRedirectPath } from '@/lib/supabase/redirect'
 
 export async function login(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
-  const redirectTo = (formData.get('redirectTo') as string) || '/dashboard'
+  const redirectTo = safeRedirectPath(formData.get('redirectTo') as string, '/dashboard')
 
   if (!email || !password) {
     redirect(
@@ -48,7 +49,7 @@ export async function signup(formData: FormData) {
   const email = (formData.get('email') as string)?.trim()
   const password = formData.get('password') as string
   const fullName = (formData.get('fullName') as string)?.trim()
-  const redirectTo = (formData.get('redirectTo') as string) || '/dashboard'
+  const redirectTo = safeRedirectPath(formData.get('redirectTo') as string, '/dashboard')
 
   if (!email || !password) {
     redirect(

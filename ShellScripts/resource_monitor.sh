@@ -91,9 +91,15 @@ main() {
 
     # Convert to integer for threshold comparison
     local cpu_int ram_int disk_int
-    cpu_int=${cpu_usage%.*}
-    ram_int=${ram_usage%.*}
-    disk_int=${disk_usage%.*}
+    cpu_int="${cpu_usage%%.*}"
+    ram_int="${ram_usage%%.*}"
+    disk_int="${disk_usage%%.*}"
+    cpu_int="${cpu_int//[^0-9]/}"
+    ram_int="${ram_int//[^0-9]/}"
+    disk_int="${disk_int//[^0-9]/}"
+    cpu_int="${cpu_int:-0}"
+    ram_int="${ram_int:-0}"
+    disk_int="${disk_int:-0}"
 
     echo -e "${CYAN}${BOLD}=== RESOURCE HEALTH MONITOR ===${RESET}"
     echo -e "Thresholds : CPU: ${CPU_THRESHOLD}% | RAM: ${RAM_THRESHOLD}% | Disk: ${DISK_THRESHOLD}%\n"
